@@ -18,62 +18,75 @@ import pl.droidsonroids.gif.InputSource;
 
 public class HttpFragment extends BaseFragment implements View.OnClickListener {
 
-	private GifTextureView mGifTextureView;
-	private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
+    private static final String KEY_ID = "key_id";
+    private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
+    private GifTextureView mGifTextureView;
 
-	@Nullable
-	@Override
-	public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-			if (container != null) {
-				Snackbar.make(container, R.string.gif_texture_view_stub_api_level, Snackbar.LENGTH_LONG).show();
-			}
-			return null;
-		} else {
-			mGifTextureView = (GifTextureView) inflater.inflate(R.layout.http, container, false);
-			downloadGif();
-			return mGifTextureView;
-		}
-	}
+    public static HttpFragment createInstance(int id) {
+        HttpFragment httpFragment = new HttpFragment();
+        Bundle args = new Bundle();
+        args.putInt(KEY_ID, id);
+        httpFragment.setArguments(args);
+        return httpFragment;
+    }
 
-	@Override
-	public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-		super.onViewCreated(view, savedInstanceState);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH && !mGifTextureView.isHardwareAccelerated()) {
-			Snackbar.make(mGifTextureView, R.string.gif_texture_view_stub_acceleration, Snackbar.LENGTH_LONG).show();
-		}
-	}
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            if (container != null) {
+                Snackbar.make(container, R.string.gif_texture_view_stub_api_level, Snackbar.LENGTH_LONG).show();
+            }
+            return null;
+        } else {
+            mGifTextureView = (GifTextureView) inflater.inflate(R.layout.http, container, false);
+            downloadGif();
+            return mGifTextureView;
+        }
+    }
 
-	@Override
-	public void onDestroy() {
-		mExecutorService.shutdownNow();
-		super.onDestroy();
-	}
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH && !mGifTextureView.isHardwareAccelerated()) {
+            Snackbar.make(mGifTextureView, R.string.gif_texture_view_stub_acceleration, Snackbar.LENGTH_LONG).show();
+        }
+    }
 
-	@RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-	void onGifDownloaded(ByteBuffer buffer) {
-		mGifTextureView.setInputSource(new InputSource.DirectByteBufferSource(buffer));
-	}
+    @Override
+    public void onDestroy() {
+        mExecutorService.shutdown();
+        super.onDestroy();
+    }
 
-	@RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-	void onDownloadFailed(Exception e) {
-		mGifTextureView.setOnClickListener(HttpFragment.this);
-		if (isDetached()) {
-			return;
-		}
-		final String message = getString(R.string.gif_texture_view_loading_failed, e.getMessage());
-		Snackbar.make(mGifTextureView, message, Snackbar.LENGTH_LONG).show();
+    @RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    void onGifDownloaded(ByteBuffer buffer) {
+        mGifTextureView.setInputSource(new InputSource.DirectByteBufferSource(buffer));
+    }
 
-	}
+    @RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    void onDownloadFailed(Exception e) {
+        mGifTextureView.setOnClickListener(HttpFragment.this);
+        if (isDetached()) {
+            return;
+        }
+        final String message = getString(R.string.gif_texture_view_loading_failed, e.getMessage());
+        Snackbar.make(mGifTextureView, message, Snackbar.LENGTH_LONG).show();
 
-	@RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-	private void downloadGif() {
-		mExecutorService.submit(new GifLoadTask(this));
-	}
+    }
 
-	@Override
-	@RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-	public void onClick(View v) {
-		downloadGif();
-	}
+    @RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private void downloadGif() {
+        mExecutorService.submit(new GifLoadTask(this, getFragmentId()));
+    }
+
+    private int getFragmentId() {
+        return getArguments().getInt(KEY_ID);
+    }
+
+    @Override
+    @RequiresApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    public void onClick(View v) {
+        downloadGif();
+    }
 }
